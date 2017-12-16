@@ -5,17 +5,12 @@ Bot's facade. Part which is resposible for initial user conversation.
 """
 
 import logging
-import logging.config
 
 from telegram import (
     ReplyKeyboardMarkup,
     ReplyKeyboardRemove,
-    InlineKeyboardButton,
-    InlineKeyboardMarkup,
-    KeyboardButton,
 )
 from telegram.ext import (
-    CommandHandler,
     MessageHandler,
     Filters,
     RegexHandler,
@@ -23,10 +18,10 @@ from telegram.ext import (
     CallbackQueryHandler,
 )
 
+from . import logconfig
 from . import db
 from . import langsdb
 from . import botutils
-from . import logconfig
 
 
 logger = logging.getLogger("wtb")
@@ -34,6 +29,10 @@ logger = logging.getLogger("wtb")
 
 ACCEPT_COMMAND = "accept"
 DECLINE_COMMAND = "decline"
+
+# any unique (per converstaion handler) string
+SET_NATIVE_LANGUAGE_STATE = "SET_NATIVE_LANGUAGE_STATE"
+SEARCH_LANGUAGE_STATE = "SEARCH_LANGUAGE_STATE"
 
 
 class TextCommands:
@@ -115,10 +114,6 @@ def get_lang_from_udpate(update):
     return langsdb.guess_lang(update.message.text.strip(), full=True)
 
 
-# any unique (per converstaion handler) string
-SET_NATIVE_LANGUAGE_STATE = "SET_NATIVE_LANGUAGE_STATE"
-
-
 def set_native_language(bot, update):
     if update.message.text and not update.message.text.startswith(TextCommands.SET_NATIVE_LANGUAGE):
         lang = get_lang_from_udpate(update)
@@ -153,9 +148,6 @@ def set_native_language(bot, update):
             reply_markup=ReplyKeyboardRemove(),
         )
         return SET_NATIVE_LANGUAGE_STATE
-
-
-SEARCH_LANGUAGE_STATE = "SEARCH_LANGUAGE_STATE"
 
 
 def search_language(bot, update):
@@ -293,35 +285,10 @@ def request_callback(bot, update):
         raise RuntimeError("unexpected command in query: %s", query)
 
 
-def pause_requests_command(bot, update):
-    raise NotImplementedError()
-
-    user = update.message.from_user
-    logger.info("User %s canceled the conversation.", user.id)
-    update.message.reply_text(
-        (
-            "Everything is paused: nobody can't find you, you can't find anyone."
-            "\n\n"
-            "To change search visibility you could start /search or just /unpause "
-            "to continue with previous settings."
-        ),
-        # reply_markup=ReplyKeyboardRemove(),
-    )
-    return ConversationHandler.END
-
-
 def fallback_command(bot, update):
     logger.error("Catched fallback on update: %s", update)
     update.message.reply_text(
         "Something went wrong, can't recognize what you want."
-        # "\n\n"
-        # "Try this commands: \n"
-        # "/start - to change your native/practicing language and make you/your profile visible\n"
-        # "/stop_search - to temporarly stop sending talk requests\n"
-        # "/stop - to stop sending and receiving talk requests\n"
-        # # "/info - to get some info about you and service\n"
-        # "\n"
-        # "Or /start to start over again."
     )
 
 

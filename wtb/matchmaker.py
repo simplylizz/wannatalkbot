@@ -22,10 +22,10 @@ from telegram import (
 from . import logconfig
 from . import botutils
 from . import db
-from . import langsdb
 
 
 WTB_DEVELOPMENT_MODE = os.getenv("WTB_DEVELOPMENT_MODE", False) == "1"
+LOOP_SLEEP_SECS_INTERVAL = 300  # secs, 300... what are you thinking about? -_-
 
 
 logger = logging.getLogger(__name__)
@@ -122,4 +122,4 @@ def run_one_loop():
 def main():
     while True:
         run_one_loop()
-        time.sleep(300)
+        time.sleep(LOOP_SLEEP_SECS_INTERVAL)
