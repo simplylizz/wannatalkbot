@@ -1,0 +1,28 @@
+version: "3.2"
+
+services:
+    mongodb:
+        image: mongo:3.6.0-jessie
+        volumes:
+            - mongo-data:/data
+    wtb:
+        image: wtb:latest
+        environment:
+            - TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
+            - WTB_DEVELOPMENT_MODE=${WTB_DEVELOPMENT_MODE}
+        depends_on:
+            - mongodb
+        links:
+            - mongodb
+    wtb-matchmaker:
+        image: wtb:latest
+        entrypoint: wtb-matchmaker
+        environment:
+            - TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
+            - WTB_DEVELOPMENT_MODE=${WTB_DEVELOPMENT_MODE}
+        depends_on:
+            - mongodb
+        links:
+            - mongodb
+volumes:
+    mongo-data:
