@@ -26,6 +26,9 @@ LANGS_PATH = os.path.join(
 
 def guess_lang(maybe_lang, full=False):
     """Returns short code for given *maybe lang* or None"""
+    if len(maybe_lang) < 2:
+        return None
+
     maybe_lang = maybe_lang.lower()
 
     short_langs = get_long_langs()
