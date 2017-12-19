@@ -351,7 +351,12 @@ def main():
     updater.dispatcher.add_error_handler(log_error)
 
     # Start the Bot
-    updater.start_polling()
+    updater.start_polling(
+        # TODO: if this will help to prevent timeouts, move values to
+        # constants, either delete it
+        poll_interval=5.0,
+        timeout=120,
+    )
 
     logger.info("Started")
 
