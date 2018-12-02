@@ -1,11 +1,11 @@
-FROM python:3.6.3
+FROM python:3.7.1
 
 ENV PYTHONUNBUFFERED 1
 
-# try to cut some edges... just to speedup container rebuild
-#RUN pip3 install --no-cache-dir pymongo==3.5.1 python-telegram-bot==9.0.0 ipython debug
+COPY requirements.txt /requirements.txt
+RUN pip3 install -r /requirements.txt
 
-ADD . /wtb
+COPY . /wtb
 WORKDIR /wtb
 
 RUN python3 setup.py install
