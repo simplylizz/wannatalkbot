@@ -6,6 +6,7 @@ Bot's facade. Part which is resposible for initial user conversation.
 
 import logging
 
+import telegram
 from telegram import (
     ReplyKeyboardMarkup,
     ReplyKeyboardRemove,
@@ -230,7 +231,13 @@ def request_callback(bot, update):
     wtb_user = get_wtb_user(query.from_user)
 
     match = db.get_match(args)
+    ################# FIXME: check only paired user
     if match["user"]["_id"] != wtb_user["_id"] or match["pair"]["_id"] != wtb_user["_id"]:
+        logger.error(
+            "User %s tried to change foreign match %s, looks suspicious",
+            wtb_user["_id"],
+            match["_id"],
+        )
         raise RuntimeError("specified match isn't related to the given user")
 
     pair = match["pair"]
@@ -238,13 +245,14 @@ def request_callback(bot, update):
     if command == ACCEPT_COMMAND:
         bot.send_message(
             text=(
-                "Good news! We'd found someone who ready to talk with "
-                "you! Here is his/her telegram: @{}, write something "
-                "in {}."
+                "Good news! We'd found someone who is ready to talk with "
+                "you: [{}](tg://user?id={}), write something in {}."
             ).format(
-                wtb_user["username"],
-                wtb_user["search_language"],
+                get_user_display_name(wtb_user),
+                wtb_user["user_id"],
+                match["user"]["search_language"],
             ),
+            parse_mode=telegram.ParseMode.MARKDOWN,
             chat_id=pair["user_id"],
         )
 
@@ -253,14 +261,16 @@ def request_callback(bot, update):
 
         bot.edit_message_text(
             text=(
-                "Cool! Here is his/her login at telegram: @{}, write "
+                "Cool! Here is link to he/she: [{}](tg://user?id={}), write "
                 "something in {}!"
             ).format(
-                pair["username"],
+                get_user_display_name(pair),
+                pair["user_id"],
                 # could differs from our current search_language, so
                 # historical value from match
                 pair["language"],
             ),
+            parse_mode=telegram.ParseMode.MARKDOWN,
             chat_id=query.message.chat_id,
             message_id=query.message.message_id,
         )
@@ -273,9 +283,9 @@ def request_callback(bot, update):
                 "Ok, request was declined."
                 "\n\n"
 
-                "Just in case we'd marked your account as paused "
-                "to prevent you from being spammed with further requests. If you want "
-                "to continue to search companions and receive requests just re-set "
+                "We'd marked your account as paused "
+                "to prevent you from being spammed with requests. If you want "
+                "to continue search companions and receive requests just re-set "
                 "your search language again."
             ),
             chat_id=query.message.chat_id,
@@ -283,6 +293,13 @@ def request_callback(bot, update):
         )
     else:
         raise RuntimeError("unexpected command in query: %s", query)
+
+
+def get_user_display_name(wtb_user):
+    if wtb_user.get("username"):
+        return wtb_user["username"]
+    else:
+        return " ".join(wtb_user[f] for f in ("first_name", "last_name") if wtb_user.get(f))
 
 
 def fallback_command(bot, update):
