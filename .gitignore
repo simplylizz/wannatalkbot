@@ -18,3 +18,7 @@ build
 /.venv3
 
 *.egg-info
+
+token
+.idea
+.python-version
