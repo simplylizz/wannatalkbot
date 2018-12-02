@@ -1,6 +1,15 @@
 # WannaTalkBot
 
-Distributed as it is with no warranties.
+[Telegram](https://telegram.me/) bot which helps (at least tries) to find a
+companion to practice foreign language with.
+
+Distributed as it is with no warranties. In case if this will blow up your
+computer - you were warned. ¯\_(ツ)_/¯
+
+## Run
+```
+./build_and_run.sh
+```
 
 ## ROADMAP
 

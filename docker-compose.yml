@@ -8,7 +8,7 @@ services:
     wtb:
         image: wtb:latest
         environment:
-            - TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
+            - TELEGRAM_API_TOKEN=${TELEGRAM_API_TOKEN}
             - WTB_DEVELOPMENT_MODE=${WTB_DEVELOPMENT_MODE}
         depends_on:
             - mongodb
@@ -18,7 +18,7 @@ services:
         image: wtb:latest
         entrypoint: wtb-matchmaker
         environment:
-            - TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
+            - TELEGRAM_API_TOKEN=${TELEGRAM_API_TOKEN}
             - WTB_DEVELOPMENT_MODE=${WTB_DEVELOPMENT_MODE}
         depends_on:
             - mongodb

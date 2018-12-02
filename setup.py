@@ -8,7 +8,7 @@ requirements_path = os.path.join(
     "requirements.txt",
 )
 with open(requirements_path) as requirements_txt:
-    requirements = filter(None, (r.strip() for in requirements_txt))
+    requirements = filter(None, (r.strip() for r in requirements_txt))
 
 
 setuptools.setup(
