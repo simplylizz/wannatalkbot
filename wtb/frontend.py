@@ -69,6 +69,7 @@ def get_actions_keyboard(wtb_user: typing.Optional[models.User]):
         )
 
 
+@botutils.log_message
 def default_handler(bot, update):
     """
     Find user in DB.
@@ -114,6 +115,7 @@ def get_lang_from_udpate(update):
     return langsdb.guess_lang(update.message.text.strip(), full=True)
 
 
+@botutils.log_message
 def set_native_language(bot, update):
     if update.message.text and not update.message.text.startswith(TextCommands.SET_NATIVE_LANGUAGE):
         lang = get_lang_from_udpate(update)
@@ -150,6 +152,7 @@ def set_native_language(bot, update):
         return SET_NATIVE_LANGUAGE_STATE
 
 
+@botutils.log_message
 def search_language(bot, update):
     """
     Search users with specified language and send them request to talk
@@ -203,6 +206,7 @@ def search_language(bot, update):
             return SEARCH_LANGUAGE_STATE
 
 
+@botutils.log_message
 def request_callback(bot, update):
     """
     if request accepted:
@@ -301,6 +305,7 @@ def get_user_display_name(wtb_user):
         return " ".join(wtb_user[f] for f in ("first_name", "last_name") if wtb_user.get(f))
 
 
+@botutils.log_message
 def fallback_command(bot, update):
     logger.error("Catched fallback on update: %s", update)
     update.message.reply_markdown(

@@ -85,3 +85,7 @@ def update_match(match, extra):
         {"_id": match["_id"]},
         {"$set": to_set},
     )
+
+
+def get_messages_collection():
+    return get_mongo_db().messages
