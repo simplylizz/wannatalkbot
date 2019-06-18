@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
 """
-Bot's facade. Part which is resposible for initial user conversation.
+Bot's facade. Part which is responsible for initial user conversation.
 """
 
-import logging
+import typing
 
 import telegram
 from telegram import (
@@ -21,44 +21,41 @@ from telegram.ext import (
 
 from . import logconfig
 from . import db
+from . import models
 from . import langsdb
 from . import botutils
 
 
-logger = logging.getLogger("wtb")
+logger = logconfig.logger
 
+ADMIN_USER_ID = 167820551
 
 ACCEPT_COMMAND = "accept"
 DECLINE_COMMAND = "decline"
 
-# any unique (per converstaion handler) string
+# any unique (per conversation handler) string
 SET_NATIVE_LANGUAGE_STATE = "SET_NATIVE_LANGUAGE_STATE"
 SEARCH_LANGUAGE_STATE = "SEARCH_LANGUAGE_STATE"
 
 
 class TextCommands:
     SET_NATIVE_LANGUAGE = "Set native language"
-    SEARCH_LANGUAGE = "Search language"
+    SEARCH_LANGUAGE = "Set search language"
 
 
-def get_wtb_user(user):
-    """get wanna talk bot user"""
-    return db.get_users_collection().find_one({"user_id": user.id})
-
-
-def get_actions_keyboard(wtb_user):
+def get_actions_keyboard(wtb_user: typing.Optional[models.User]):
     lang_key = "language"
-    if wtb_user and wtb_user.get(lang_key):  # there is no users without set native lang
-        lang = wtb_user[lang_key]
+    if wtb_user:  # there is no users without set native lang
+        lang = wtb_user.language
 
         search_lang_text = TextCommands.SEARCH_LANGUAGE
-        if wtb_user.get("search_language"):
-            search_lang = wtb_user["search_language"]
-            search_lang_text = f"{search_lang_text} ({search_lang})"
+        if wtb_user.search_language:
+            search_lang = wtb_user.search_language
+            search_lang_text = f"{search_lang_text} (current: {search_lang})"
 
         return ReplyKeyboardMarkup(
             [
-                [f"{TextCommands.SET_NATIVE_LANGUAGE} ({lang})"],
+                [f"{TextCommands.SET_NATIVE_LANGUAGE} (current: {lang})"],
                 [search_lang_text],
             ],
             resize_keyboard=True,
@@ -78,28 +75,30 @@ def default_handler(bot, update):
     If it's missing ask him to enter his language.
     """
     user = update.message.from_user
-    wtb_user = get_wtb_user(user)
+    wtb_user = models.User.get_user_from_telegram_obj(user)
 
     if wtb_user is None:
-        update.message.reply_text(
+        update.message.reply_markdown(
             (
-                "Hi! This is WannaTalkBot!"
+                "Hello, this is WannaTalkBot!"
                 "\n\n"
                 "Bot for those who want to practice foreign languages."
-                " But it's a p2p service, so this means you should not "
-                "only get help from other participants but also provide it."
+                " It's a p2p service, so this means you should not "
+                "only receive help from other participants but also provide it."
                 "\n\n"
-                "P.S. This project is in early access stage so there is many "
-                "missing features (like non-English interface, for example ;) ). "
-                "I hope that some of them would appear soon, but "
-                "despite on feature lack this service would be still useful."
+                "If you want to send your feedback or just say **hi**, "
+                f"don't hesitate to [tg me](tg://user?id={ADMIN_USER_ID})."
+                "\n\n"
+                "P.S. This project is in it's early stage, so there are not too "
+                "much users and not too much features. Also some bugs are "
+                "possible."
             ),
             reply_markup=get_actions_keyboard(wtb_user),
         )
         return
     else:
         lang = wtb_user["language"]
-        update.message.reply_text(
+        update.message.reply_markdown(
             (
                 f"Your native language is currently set to {lang}."
                 f"\n\n"
@@ -121,13 +120,13 @@ def set_native_language(bot, update):
 
         if lang:
             wtb_user = db.update_wtb_user(update.message.from_user, {"language": lang})
-            update.message.reply_text(
+            update.message.reply_markdown(
                 f"Your native language is set to {lang}.",
                 reply_markup=get_actions_keyboard(wtb_user),
             )
             return ConversationHandler.END
         else:
-            update.message.reply_text(
+            update.message.reply_markdown(
                 (
                     "Sorry, failed to recognize language. Maybe you'd misspelled it?"
                     "\n\n"
@@ -137,7 +136,7 @@ def set_native_language(bot, update):
             )
             return SET_NATIVE_LANGUAGE_STATE
     else:
-        update.message.reply_text(
+        update.message.reply_markdown(
             (
                 "Specify your native language. People who "
                 "want to practice it would be able to send you requests to talk."
@@ -156,7 +155,7 @@ def search_language(bot, update):
     Search users with specified language and send them request to talk
     """
     if not update.message.text or update.message.text.startswith(TextCommands.SEARCH_LANGUAGE):
-        update.message.reply_text(
+        update.message.reply_markdown(
             (
                 "Specify language which you want to practice (in English, 2 or 3 "
                 "letters or full name):"
@@ -176,7 +175,7 @@ def search_language(bot, update):
             )
             counter = db.count_language(lang)
 
-            update.message.reply_text(
+            update.message.reply_markdown(
                 (
                     "We would try to find someone who is ready to help you, just wait for it. "
                     "When it happen you'll get each other contacts."
@@ -193,7 +192,7 @@ def search_language(bot, update):
             )
             return ConversationHandler.END
         else:
-            update.message.reply_text(
+            update.message.reply_markdown(
                 (
                     "Sorry, failed to recognize language. Maybe you'd misspelled it?"
                     "\n\n"
@@ -228,7 +227,7 @@ def request_callback(bot, update):
 
     command, args = splitted
 
-    wtb_user = get_wtb_user(query.from_user)
+    wtb_user = models.User.get_user_from_telegram_obj(query.from_user)
 
     match = db.get_match(args)
     ################# FIXME: check only paired user
@@ -304,7 +303,7 @@ def get_user_display_name(wtb_user):
 
 def fallback_command(bot, update):
     logger.error("Catched fallback on update: %s", update)
-    update.message.reply_text(
+    update.message.reply_markdown(
         "Something went wrong, can't recognize what you want."
     )
 

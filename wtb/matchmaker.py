@@ -1,12 +1,9 @@
 """
 Find users, send requests to talk.
 
-TODO: rewrite in a tinder-like maneer. E.g. you clicks "search", view
-some profiles and say "yes" or "no" to them. The same makes other
-peoples. If you'd matched than you'll receive each others direct
-contacts.
-
-So no separate matchmaker daemon would be required.
+The high-level design:
+1. You click
+2.
 """
 
 import logging

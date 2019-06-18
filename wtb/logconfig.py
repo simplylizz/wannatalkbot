@@ -27,3 +27,5 @@ logging.config.dictConfig({
         },
     },
 })
+
+logger = logging.getLogger("wtb")

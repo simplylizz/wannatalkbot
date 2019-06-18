@@ -8,7 +8,7 @@ requirements_path = os.path.join(
     "requirements.txt",
 )
 with open(requirements_path) as requirements_txt:
-    requirements = filter(None, (r.strip() for r in requirements_txt))
+    requirements = [r.strip() for r in requirements_txt if r.strip()]
 
 
 setuptools.setup(
@@ -31,7 +31,6 @@ setuptools.setup(
     entry_points={
         'console_scripts': [
             'wtb-bot = wtb.frontend:main',
-            'wtb-matchmaker = wtb.matchmaker:main',
         ],
     },
 )
