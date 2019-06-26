@@ -12,7 +12,7 @@ with open(requirements_path) as requirements_txt:
 
 
 setuptools.setup(
-    version="0.0.1",
+    version="1.0.0",
 
     name="WannaTalkBot",
     author="Anton Yanchenko",
