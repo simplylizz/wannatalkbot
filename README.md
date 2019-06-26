@@ -17,6 +17,4 @@ computer - you were warned. ¯\_(ツ)_/¯
 
 ## ROADMAP
 
-1. Rewrite matching logic
 1. Add bio/greating message
-1. Pause/unpause participation
