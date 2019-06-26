@@ -5,6 +5,7 @@ Bot's facade. Part which is responsible for initial user conversation.
 """
 
 import typing
+import datetime
 
 import telegram
 from telegram import (
@@ -29,35 +30,37 @@ from . import botutils
 logger = logconfig.logger
 
 ADMIN_USER_ID = 167820551
-
-ACCEPT_COMMAND = "accept"
-DECLINE_COMMAND = "decline"
+PAIR_ATTEMPTS = 5
 
 # any unique (per conversation handler) string
 SET_NATIVE_LANGUAGE_STATE = "SET_NATIVE_LANGUAGE_STATE"
 SEARCH_LANGUAGE_STATE = "SEARCH_LANGUAGE_STATE"
+FIND_STATE = "FIND"
 
 
 class TextCommands:
     SET_NATIVE_LANGUAGE = "Set native language"
     SEARCH_LANGUAGE = "Set search language"
+    FIND = "Send request to chat with someone"
 
 
 def get_actions_keyboard(wtb_user: typing.Optional[models.User]):
-    lang_key = "language"
     if wtb_user:  # there is no users without set native lang
         lang = wtb_user.language
 
-        search_lang_text = TextCommands.SEARCH_LANGUAGE
+        actions = [
+            [f"{TextCommands.SET_NATIVE_LANGUAGE} (current: {lang})"],
+        ]
+
         if wtb_user.search_language:
             search_lang = wtb_user.search_language
-            search_lang_text = f"{search_lang_text} (current: {search_lang})"
+            actions.append([f"{TextCommands.SEARCH_LANGUAGE} (current: {search_lang})"])
+            actions.append([TextCommands.FIND])
+        else:
+            actions.append([TextCommands.SEARCH_LANGUAGE])
 
         return ReplyKeyboardMarkup(
-            [
-                [f"{TextCommands.SET_NATIVE_LANGUAGE} (current: {lang})"],
-                [search_lang_text],
-            ],
+            actions,
             resize_keyboard=True,
             one_time_keyboard=True,
         )
@@ -69,14 +72,17 @@ def get_actions_keyboard(wtb_user: typing.Optional[models.User]):
         )
 
 
+def get_wtb_user_from_update(update) -> models.User:
+    return db.get_user_from_telegram_obj(update.message.from_user)
+
+
 @botutils.log_message
 def default_handler(bot, update):
     """
     Find user in DB.
     If it's missing ask him to enter his language.
     """
-    user = update.message.from_user
-    wtb_user = models.User.get_user_from_telegram_obj(user)
+    wtb_user = get_wtb_user_from_update(update)
 
     if wtb_user is None:
         update.message.reply_markdown(
@@ -98,7 +104,7 @@ def default_handler(bot, update):
         )
         return
     else:
-        lang = wtb_user["language"]
+        lang = wtb_user.language
         update.message.reply_markdown(
             (
                 f"Your native language is currently set to {lang}."
@@ -132,7 +138,7 @@ def set_native_language(bot, update):
                 (
                     "Sorry, failed to recognize language. Maybe you'd misspelled it?"
                     "\n\n"
-                    "Please, try to enter it again:"
+                    "Please, try to enter your native language again."
                 ),
                 reply_markup=ReplyKeyboardRemove(),
             )
@@ -169,7 +175,7 @@ def search_language(bot, update):
     else:
         lang = get_lang_from_udpate(update)
         if lang:
-            db.update_wtb_user(
+            wtb_user = db.update_wtb_user(
                 update.message.from_user,
                 {
                     "search_language": lang,
@@ -180,18 +186,20 @@ def search_language(bot, update):
 
             update.message.reply_markdown(
                 (
-                    "We would try to find someone who is ready to help you, just wait for it. "
-                    "When it happen you'll get each other contacts."
-                    "\n\n"
                     "Right now we have {language_counter}"
-                    " users who specified {language} as their native language."
+                    " active users who specified {language} as their native "
+                    "language."
                     "\n\n"
-                    "Also other people can send you requests to practice your native language."
+                    "You could search them through this bot and send request "
+                    "to talk. Your contacts would be exposed to them."
+                    "\n\n"
+                    "Also other people can send you requests to practice your"
+                    " native language."
                 ).format(
                     language=lang,
                     language_counter=counter,
                 ),
-                reply_markup=ReplyKeyboardRemove(),
+                reply_markup=get_actions_keyboard(wtb_user),
             )
             return ConversationHandler.END
         else:
@@ -199,7 +207,7 @@ def search_language(bot, update):
                 (
                     "Sorry, failed to recognize language. Maybe you'd misspelled it?"
                     "\n\n"
-                    "Please, try to enter it again:"
+                    "Please, try to enter language which you wish to practice again."
                 ),
                 reply_markup=ReplyKeyboardRemove(),
             )
@@ -207,95 +215,77 @@ def search_language(bot, update):
 
 
 @botutils.log_message
-def request_callback(bot, update):
+def find_pair(bot, update):
     """
-    if request accepted:
-      1 - send contact info to vis-a-vis
-      2 - update match state
-      3 - remove incoming request
-      4 - edit message with contact info
-    if request declined:
-      1 - pause incoming requests
-      2 - update match state
-      3 - remove incoming request
-      4 - edit message with update that requests are paused and could
-          be resumed through starting search
+    Find user to practice language with.
+
+    TODO: limit requests frequency rate
     """
-    query = update.callback_query
 
-    logger.info("Processing callback for data: %s", query.data)
+    wtb_user = get_wtb_user_from_update(update)
 
-    splitted = query.data.split("_", 1)
-    if len(splitted) != 2:
-        raise RuntimeError("unexpected query: %s" % query)
+    skip_users = [wtb_user.user_id]
+    skip_users.extend(
+        r["user_id"]
+        for r in wtb_user.sent_requests
+        if r["language"] == wtb_user.search_language
+    )
 
-    command, args = splitted
+    attempts = PAIR_ATTEMPTS
+    while attempts > 0:
+        attempts -= 1
 
-    wtb_user = models.User.get_user_from_telegram_obj(query.from_user)
+        pair = db.get_pair(skip_users, wtb_user.search_language)
 
-    match = db.get_match(args)
-    ################# FIXME: check only paired user
-    if match["user"]["_id"] != wtb_user["_id"] or match["pair"]["_id"] != wtb_user["_id"]:
-        logger.error(
-            "User %s tried to change foreign match %s, looks suspicious",
-            wtb_user["_id"],
-            match["_id"],
-        )
-        raise RuntimeError("specified match isn't related to the given user")
+        if not pair:
+            update.message.reply_markdown(
+                (
+                    "Unfortunately we can't find anyone right now. Please, "
+                    "try later."
+                ),
+                reply_markup=get_actions_keyboard(wtb_user),
+            )
+            break
 
-    pair = match["pair"]
+        try:
+            bot.send_message(
+                text=(
+                    "Hey! Someone needs your help. Just drop a message to "
+                    "[{name}](tg://user?id={user_id}) in {language} when it's "
+                    "convenient to you, but please, don't make him/her wait too "
+                    "long."
+                ).format(
+                    name=get_user_display_name(wtb_user),
+                    user_id=wtb_user["user_id"],
+                    language=wtb_user.search_language,
+                ),
+                parse_mode=telegram.ParseMode.MARKDOWN,
+                chat_id=pair["user_id"],
+            )
+        except telegram.error.Unauthorized:  # bot is blocked by user
+            db.update_wtb_user(pair, {"pause": True})
+            continue
 
-    if command == ACCEPT_COMMAND:
-        bot.send_message(
-            text=(
-                "Good news! We'd found someone who is ready to talk with "
-                "you: [{}](tg://user?id={}), write something in {}."
-            ).format(
-                get_user_display_name(wtb_user),
-                wtb_user["user_id"],
-                match["user"]["search_language"],
-            ),
-            parse_mode=telegram.ParseMode.MARKDOWN,
-            chat_id=pair["user_id"],
-        )
+        # FIXME: overriding whole list of requests is inneficient
+        sent_requests = wtb_user.sent_requests
+        sent_requests.append({
+            "user_id": pair["user_id"],
+            "language": wtb_user.search_language,
+            "created_at": datetime.datetime.utcnow(),
+        })
+        db.update_wtb_user(wtb_user, {"sent_requests": sent_requests})
 
-        db.update_match(match, {"state": "accepted"})
-        db.update_wtb_user(wtb_user, {"incoming_request": None})
-
-        bot.edit_message_text(
-            text=(
-                "Cool! Here is link to he/she: [{}](tg://user?id={}), write "
-                "something in {}!"
-            ).format(
-                get_user_display_name(pair),
-                pair["user_id"],
-                # could differs from our current search_language, so
-                # historical value from match
-                pair["language"],
-            ),
-            parse_mode=telegram.ParseMode.MARKDOWN,
-            chat_id=query.message.chat_id,
-            message_id=query.message.message_id,
-        )
-    elif command == DECLINE_COMMAND:
-        db.update_match(match, {"state": "declined"})
-        db.update_wtb_user(wtb_user, {"incoming_request": None, "pause": True})
-
-        bot.edit_message_text(
-            text=(
-                "Ok, request was declined."
+        update.message.reply_markdown(
+            (
+                "We have found someone and sent your contacts. Just wait "
+                "for \\*hello\\* from this user."
                 "\n\n"
-
-                "We'd marked your account as paused "
-                "to prevent you from being spammed with requests. If you want "
-                "to continue search companions and receive requests just re-set "
-                "your search language again."
+                "You could also send more requests."
             ),
-            chat_id=query.message.chat_id,
-            message_id=query.message.message_id,
+            reply_markup=get_actions_keyboard(wtb_user),
         )
-    else:
-        raise RuntimeError("unexpected command in query: %s", query)
+
+        break
 
 
 def get_user_display_name(wtb_user):
@@ -309,7 +299,7 @@ def get_user_display_name(wtb_user):
 def fallback_command(bot, update):
     logger.error("Catched fallback on update: %s", update)
     update.message.reply_markdown(
-        "Something went wrong, can't recognize what you want."
+        "Something went wrong, can't handle your request."
     )
 
 
@@ -363,7 +353,25 @@ def main():
     )
     updater.dispatcher.add_handler(handler)
 
-    updater.dispatcher.add_handler(CallbackQueryHandler(request_callback))
+    handler = ConversationHandler(
+        entry_points=[
+            RegexHandler(
+                rf"^{TextCommands.FIND}.*",
+                find_pair,
+            ),
+        ],
+        states={
+            # state key doesn't matter, there is only one state
+            FIND_STATE: [
+                MessageHandler(Filters.text, find_pair),
+            ],
+        },
+
+        fallbacks=[
+            MessageHandler(Filters.all, fallback_command),
+        ],
+    )
+    updater.dispatcher.add_handler(handler)
 
     handler = MessageHandler(Filters.all, default_handler)
     updater.dispatcher.add_handler(handler)
@@ -372,12 +380,7 @@ def main():
     updater.dispatcher.add_error_handler(log_error)
 
     # Start the Bot
-    updater.start_polling(
-        # TODO: if this will help to prevent timeouts, move values to
-        # constants, either delete it
-        poll_interval=5.0,
-        timeout=120,
-    )
+    updater.start_polling()
 
     logger.info("Started")
 

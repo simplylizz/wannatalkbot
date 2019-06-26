@@ -3,6 +3,8 @@ import datetime
 import pymongo
 import bson
 
+from . import models
+
 
 _MONGO_CLIENT = None
 
@@ -20,13 +22,11 @@ def get_users_collection():
     return get_mongo_db().users
 
 
-def get_matches_collection():
-    return get_mongo_db().matches
-
-
 def count_language(lang):
-    # TODO: filter only active/not hidden profiles
-    return get_users_collection().count({"language": lang})
+    return get_users_collection().count({
+        "pause": False,
+        "language": lang,
+    })
 
 
 def update_wtb_user(user, extra):
@@ -57,7 +57,7 @@ def update_wtb_user(user, extra):
 
     to_set.update(extra)
 
-    return get_users_collection().find_one_and_update(
+    result = get_users_collection().find_one_and_update(
         {"user_id": user_id},
         {
             "$set": to_set,
@@ -70,22 +70,37 @@ def update_wtb_user(user, extra):
         new=True,
     )
 
-
-def get_match(match_id):
-    return get_matches_collection().find_one(
-        {"_id": bson.ObjectId(match_id)},
-    )
-
-
-def update_match(match, extra):
-    to_set = extra.copy()
-    to_set["updated_at"] = datetime.datetime.utcnow()
-
-    get_matches_collection().find_one_and_update(
-        {"_id": match["_id"]},
-        {"$set": to_set},
-    )
+    return models.User(**result)
 
 
 def get_messages_collection():
     return get_mongo_db().messages
+
+
+def get_user_from_telegram_obj(user):
+    """get wanna talk bot user"""
+
+    db_user = get_users_collection().find_one({"user_id": user.id})
+
+    if db_user:
+        return models.User(**db_user)
+
+    return None
+
+
+def get_pair(skip_users, language):
+    pipeline = [
+        {
+            "$match": {
+                "pause": False,
+                "language": language,
+                "user_id": {
+                    "$nin": skip_users,
+                },
+            },
+        },
+        {"$sample": {"size": 1}},
+    ]
+    sample = list(get_users_collection().aggregate(pipeline))
+
+    return sample[0] if sample else None

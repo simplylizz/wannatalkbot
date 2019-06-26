@@ -2,8 +2,6 @@ import datetime
 import dataclasses
 import typing
 
-from . import db
-
 
 @dataclasses.dataclass
 class User:
@@ -17,43 +15,22 @@ class User:
     """
 
     _id: str
-    first_name: str
-    last_name: str
-    username: str
-    language_code: str
     user_id: str
     last_updated: datetime.datetime
     created_at: datetime.datetime
-
     language: str
-    search_language: str
-    current_request: typing.Optional[typing.List]
-    sent_requests: typing.Optional[typing.List]
+    search_language: str = dataclasses.field(default='')
+    sent_requests: typing.List = dataclasses.field(default_factory=lambda: [])
 
-    @classmethod
-    def get_user_from_telegram_obj(csl, user):
-        """get wanna talk bot user"""
-        db_user = db.get_users_collection().find_one({"user_id": user.id})
+    first_name: typing.Optional[str] = None
+    last_name: typing.Optional[str] = None
+    username: typing.Optional[str] = None
+    language_code: typing.Optional[str] = None
 
-        if db_user:
-            return cls(**db_user)
+    pause: bool = dataclasses.field(default=False)
 
-        return None
+    def __getitem__(self, key):
+        return getattr(self, key)
 
-
-@dataclasses.dataclass
-class Match:
-    """
-    user: <obj from users> - request to match from this user
-    pair: <obj from users> - request to match to this user
-    created_at: <datetime>
-    updated_at: <datetime>
-    state: "accepted" | "declined" | not set
-    """
-
-    _id: str
-    user: str
-    pair: str
-    created_at: datetime.datetime
-    updated_at: datetime.datetime
-    state: str
+    def get(self, key, default=None):
+        getattr(self, key, default)
