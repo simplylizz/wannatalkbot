@@ -290,9 +290,12 @@ def find_pair(bot, update):
 
 def get_user_display_name(wtb_user):
     if wtb_user.get("username"):
-        return wtb_user["username"]
+        name = wtb_user["username"]
     else:
-        return " ".join(wtb_user[f] for f in ("first_name", "last_name") if wtb_user.get(f))
+        name = " ".join(
+            wtb_user[f] for f in ("first_name", "last_name") if wtb_user.get(f))
+
+    return name.strip() or "no_name"
 
 
 @botutils.log_message
