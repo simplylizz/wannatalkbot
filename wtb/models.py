@@ -33,4 +33,4 @@ class User:
         return getattr(self, key)
 
     def get(self, key, default=None):
-        getattr(self, key, default)
+        return getattr(self, key, default)
