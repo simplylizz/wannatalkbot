@@ -10,7 +10,6 @@ class User:
     user_id - telegram user id
     last_updated - utc datetime obj
     created_at - utc datetime obj
-    current_request: None or <matches._id>
     sent_requests: [<users._id>]
     """
 
