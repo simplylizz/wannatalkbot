@@ -35,12 +35,14 @@ PAIR_ATTEMPTS = 5
 SET_NATIVE_LANGUAGE_STATE = "SET_NATIVE_LANGUAGE_STATE"
 SEARCH_LANGUAGE_STATE = "SEARCH_LANGUAGE_STATE"
 FIND_STATE = "FIND"
+STATS = "/stats"
 
 
 class TextCommands:
     SET_NATIVE_LANGUAGE = "Set native language"
     SEARCH_LANGUAGE = "Set search language"
     FIND = "Send request to chat with someone"
+    STATS = "Show bot statistics"
 
 
 def get_actions_keyboard(wtb_user: typing.Optional[models.User]):
@@ -57,18 +59,16 @@ def get_actions_keyboard(wtb_user: typing.Optional[models.User]):
             actions.append([TextCommands.FIND])
         else:
             actions.append([TextCommands.SEARCH_LANGUAGE])
-
-        return ReplyKeyboardMarkup(
-            actions,
-            resize_keyboard=True,
-            one_time_keyboard=True,
-        )
     else:
-        return ReplyKeyboardMarkup(
-            [[TextCommands.SET_NATIVE_LANGUAGE]],
-            resize_keyboard=True,
-            one_time_keyboard=True,
-        )
+        actions = [[TextCommands.SET_NATIVE_LANGUAGE]]
+
+    actions.append([TextCommands.STATS])
+
+    return ReplyKeyboardMarkup(
+        actions,
+        resize_keyboard=True,
+        one_time_keyboard=True,
+    )
 
 
 def get_wtb_user_from_update(update) -> models.User:
@@ -95,6 +95,8 @@ def default_handler(update, context):
                 "If you want to send your feedback or just say **hi**, "
                 f"don't hesitate to [tg me](tg://user?id={ADMIN_USER_ID})."
                 "\n\n"
+                "You can get some bot usage stats with /stats command."
+                "\n\n"
                 "P.S. This project is in it's early stage, so there are not too "
                 "much users and not too much features. Also some bugs are "
                 "possible."
@@ -114,6 +116,35 @@ def default_handler(update, context):
             reply_markup=get_actions_keyboard(wtb_user),
         )
         return
+
+
+def stats(update, context):
+    """
+    Print usage statistics.
+    """
+    wtb_user = get_wtb_user_from_update(update)
+
+    update.message.reply_markdown(
+        (
+            "Total users: {}\n"
+            "Active users: {}\n"
+            "New users within last 30 days: {}\n"
+            "Top 5 searched languages:\n"
+            "{}\n"
+            "Top 5 known languages:\n"
+            "{}\n"
+            "Top 5 most popular language pairs:\n"
+            "{}\n"
+        ).format(
+            db.get_user_count(),
+            db.get_active_user_count(),
+            db.get_recent_user_count(30),
+            "\n".join(f"{i['_id']}: {i['count']}" for i in db.get_top_wanted_languages(5)),
+            "\n".join(f"{i['_id']}: {i['count']}" for i in db.get_top_known_languages(5)),
+            "\n".join(', '.join(i['_id']) + ': ' + str(i['count']) for i in db.get_top_language_pairs(5)),
+        ),
+        reply_markup=get_actions_keyboard(wtb_user),
+    )
 
 
 def get_lang_from_udpate(update):
@@ -372,6 +403,12 @@ def main():
         fallbacks=[
             MessageHandler(Filters.all, fallback_command),
         ],
+    )
+    updater.dispatcher.add_handler(handler)
+
+    handler = MessageHandler(
+        Filters.text(TextCommands.STATS),
+        stats,
     )
     updater.dispatcher.add_handler(handler)
 

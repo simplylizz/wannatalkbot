@@ -5,6 +5,8 @@ import bson
 
 from . import models
 
+# TODO: add indices... someday.
+
 
 _MONGO_CLIENT = None
 
@@ -104,3 +106,51 @@ def get_pair(skip_users, language):
     sample = list(get_users_collection().aggregate(pipeline))
 
     return sample[0] if sample else None
+
+
+def get_user_count():
+    return get_users_collection().find({}).count()
+
+
+def get_active_user_count():
+    return get_users_collection().find({"pause": {"$ne": True}}).count()
+
+
+def get_recent_user_count(days):
+    return get_users_collection().find(
+        {"created_at": {"$gte": datetime.datetime.now() - datetime.timedelta(days=days)}}
+    ).count()
+
+
+def get_top_wanted_languages(limit):
+    return get_users_collection().aggregate([
+        {"$match": {"search_language": {"$ne": None}}},
+        {"$sortByCount": "$search_language"},
+        {"$limit": limit},
+    ])
+
+
+def get_top_known_languages(limit):
+    return get_users_collection().aggregate([
+        {"$match": {"language": {"$ne": None}}},
+        {"$sortByCount": "$language"},
+        {"$limit": limit},
+    ])
+
+
+def get_top_language_pairs(limit):
+    return get_users_collection().aggregate([
+        {"$match": {"$and": [
+            {"language": {"$ne": None}},
+            {"search_language": {"$ne": None}},
+        ]}},
+        {"$project": {"langs": ["$search_language", "$language"]}},
+        {"$unwind": "$langs"},
+        {"$sort": {"langs": 1}},
+        {"$group": {
+            "_id": '$_id',
+            "langs": {"$push": "$langs"},
+        }},
+        {"$sortByCount": "$langs"},
+        {"$limit": limit},
+    ])
