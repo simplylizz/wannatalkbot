@@ -1,4 +1,4 @@
-FROM python:3.8.2-alpine as img
+FROM python:3.8.3-alpine as img
 
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1
 # false is new true:
