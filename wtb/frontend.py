@@ -407,7 +407,7 @@ def main():
     updater.dispatcher.add_handler(handler)
 
     handler = MessageHandler(
-        Filters.text(TextCommands.STATS),
+        Filters.text(STATS),
         stats,
     )
     updater.dispatcher.add_handler(handler)
