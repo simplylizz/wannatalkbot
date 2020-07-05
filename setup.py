@@ -11,7 +11,7 @@ with open(requirements_path) as requirements_txt:
     requirements = [r.strip() for r in requirements_txt if r.strip()]
 
 setuptools.setup(
-    version="1.1.0",
+    version="1.1.1",
 
     name="WannaTalkBot",
     author="Anton Yanchenko",
