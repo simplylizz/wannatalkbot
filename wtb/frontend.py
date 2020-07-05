@@ -76,7 +76,7 @@ def get_wtb_user_from_update(update) -> models.User:
 
 
 @botutils.log_message
-def default_handler(bot, update):
+def default_handler(update, context):
     """
     Find user in DB.
     If it's missing ask him to enter his language.
@@ -121,7 +121,7 @@ def get_lang_from_udpate(update):
 
 
 @botutils.log_message
-def set_native_language(bot, update):
+def set_native_language(update, context):
     if update.message.text and not update.message.text.startswith(TextCommands.SET_NATIVE_LANGUAGE):
         lang = get_lang_from_udpate(update)
 
@@ -158,7 +158,7 @@ def set_native_language(bot, update):
 
 
 @botutils.log_message
-def search_language(bot, update):
+def search_language(update, context):
     """
     Search users with specified language and send them request to talk
     """
@@ -214,7 +214,7 @@ def search_language(bot, update):
 
 
 @botutils.log_message
-def find_pair(bot, update):
+def find_pair(update, context):
     """
     Find user to practice language with.
 
@@ -298,16 +298,16 @@ def get_user_display_name(wtb_user):
 
 
 @botutils.log_message
-def fallback_command(bot, update):
+def fallback_command(update, context):
     logger.error("Catched fallback on update: %s", update)
     update.message.reply_markdown(
         "Something went wrong, can't handle your request."
     )
 
 
-def log_error(bot, update, error):
+def log_error(update, context):
     """Log Errors caused by Updates"""
-    logger.error('Update "%s" caused error "%s"', update, error, exc_info=True)
+    logger.error('Update "%s" caused error "%s"', update, context.error, exc_info=True)
 
 
 def main():

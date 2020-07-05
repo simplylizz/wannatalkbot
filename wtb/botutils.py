@@ -21,7 +21,7 @@ def get_updater():
     """
     Create the EventHandler and pass it your bot's token.
     """
-    return telegram.ext.Updater(TELEGRAM_API_TOKEN)
+    return telegram.ext.Updater(TELEGRAM_API_TOKEN, use_context=True)
 
 
 def get_bot():
@@ -30,9 +30,9 @@ def get_bot():
 
 def log_message(wrapped):
     @functools.wraps(wrapped)
-    def wrapper(bot, update):
+    def wrapper(update, context):
         try:
-            return wrapped(bot, update)
+            return wrapped(update, context)
         finally:
             try:
                 message = update.message.to_dict()
