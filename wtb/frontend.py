@@ -15,7 +15,6 @@ from telegram import (
 from telegram.ext import (
     MessageHandler,
     Filters,
-    RegexHandler,
     ConversationHandler,
     CallbackQueryHandler,
 )
@@ -318,8 +317,8 @@ def main():
 
     handler = ConversationHandler(
         entry_points=[
-            RegexHandler(
-                rf"^{TextCommands.SET_NATIVE_LANGUAGE}.*",
+            MessageHandler(
+                Filters.regex(rf"^{TextCommands.SET_NATIVE_LANGUAGE}.*"),
                 set_native_language,
             ),
         ],
@@ -338,8 +337,8 @@ def main():
 
     handler = ConversationHandler(
         entry_points=[
-            RegexHandler(
-                rf"^{TextCommands.SEARCH_LANGUAGE}.*",
+            MessageHandler(
+                Filters.regex(rf"^{TextCommands.SEARCH_LANGUAGE}.*"),
                 search_language,
             ),
         ],
@@ -358,8 +357,8 @@ def main():
 
     handler = ConversationHandler(
         entry_points=[
-            RegexHandler(
-                rf"^{TextCommands.FIND}.*",
+            MessageHandler(
+                Filters.regex(rf"^{TextCommands.FIND}.*"),
                 find_pair,
             ),
         ],
