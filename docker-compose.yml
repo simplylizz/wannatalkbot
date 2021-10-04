@@ -2,7 +2,7 @@ version: "3.7"
 
 services:
     mongodb:
-        image: mongo:4.2.8
+        image: mongo:4.4.9
         volumes:
             - mongo-data:/data
     wtb:
