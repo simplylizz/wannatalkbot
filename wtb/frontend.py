@@ -329,7 +329,7 @@ def get_user_display_name(wtb_user):
 
 @botutils.log_message
 def fallback_command(update, context):
-    logger.error("Catched fallback on update: %s", update)
+    logger.error("Caught fallback on update: %s", update)
     update.message.reply_markdown(
         "Something went wrong, can't handle your request."
     )
