@@ -130,8 +130,10 @@ def stats(update, context):
             "New users within last 30 days: {}\n"
             "Top 5 searched languages:\n"
             "{}\n"
+            "\n"
             "Top 5 known languages:\n"
             "{}\n"
+            "\n"
             "Top 5 most popular language pairs:\n"
             "{}\n"
         ).format(
