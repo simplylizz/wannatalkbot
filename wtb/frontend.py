@@ -253,6 +253,14 @@ def find_pair(update, context):
 
     wtb_user = get_wtb_user_from_update(update)
 
+    # should be rather a telemetry event, but we don't have telemetry events :)
+    logger.info(
+        "User %s is trying to pair: %s -> %s",
+        wtb_user.user_id,
+        wtb_user.language,
+        wtb_user.search_language,
+    )
+
     skip_users = [wtb_user.user_id]
     skip_users.extend(
         r["user_id"]
@@ -295,7 +303,7 @@ def find_pair(update, context):
             db.update_wtb_user(pair, {"pause": True})
             continue
 
-        # FIXME: overriding whole list of requests is inneficient
+        # FIXME: overriding whole list of requests is inefficient
         sent_requests = wtb_user.sent_requests
         sent_requests.append({
             "user_id": pair["user_id"],
@@ -313,6 +321,8 @@ def find_pair(update, context):
             ),
             reply_markup=get_actions_keyboard(wtb_user),
         )
+
+        logger.info("%s sent request to %s", wtb_user.user_id, pair["user_id"])
 
         break
 
