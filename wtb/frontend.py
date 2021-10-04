@@ -16,7 +16,6 @@ from telegram.ext import (
     MessageHandler,
     Filters,
     ConversationHandler,
-    CallbackQueryHandler,
 )
 
 from . import logconfig
@@ -278,7 +277,7 @@ def find_pair(update, context):
             break
 
         try:
-            bot.send_message(
+            context.bot.send_message(
                 text=(
                     "Hey! Someone needs your help. Just drop a message to "
                     "[{name}](tg://user?id={user_id}) in {language} when it's "
