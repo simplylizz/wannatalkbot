@@ -411,6 +411,12 @@ def main():
     )
     updater.dispatcher.add_handler(handler)
 
+    handler = MessageHandler(
+        Filters.text(TextCommands.STATS),
+        stats,
+    )
+    updater.dispatcher.add_handler(handler)
+
     handler = MessageHandler(Filters.all, default_handler)
     updater.dispatcher.add_handler(handler)
 
