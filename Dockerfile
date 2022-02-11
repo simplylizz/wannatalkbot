@@ -1,11 +1,7 @@
-FROM python:3.9.7-alpine as img
+FROM python:3.10.2-alpine as img
 
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1
-# false is new true:
-# > To enable the boolean options --no-compile, --no-warn-script-location
-# > and --no-cache-dir, falsy values have to be used
-# (c) https://pip.pypa.io/en/stable/user_guide/#config-file
-ENV PIP_NO_CACHE_DIR=false
+ENV PIP_NO_CACHE_DIR=1
 ENV PATH="/opt/venv/bin:$PATH"
 
 
