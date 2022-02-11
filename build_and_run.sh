@@ -7,4 +7,4 @@ if [ ! -f token ]; then
     exit 1
 fi
 
-docker build -t wtb:latest . && TELEGRAM_API_TOKEN=`cat token` docker-compose up $@
+docker build -t wtb:latest . && TELEGRAM_API_TOKEN=`cat token` docker compose up $@
