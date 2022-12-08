@@ -1,13 +1,10 @@
-FROM python:3.10.2-alpine as img
+FROM python:3.11.1-slim as img
 
-ENV PIP_DISABLE_PIP_VERSION_CHECK=1
-ENV PIP_NO_CACHE_DIR=1
-ENV PATH="/opt/venv/bin:$PATH"
-
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PATH="/opt/venv/bin:$PATH"
 
 FROM img as build
-
-RUN apk add gcc musl-dev libffi-dev libressl-dev
 
 RUN python -m venv /opt/venv
 

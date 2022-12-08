@@ -1,19 +1,17 @@
-version: "3.7"
-
 services:
-    mongodb:
-        image: mongo:5.0.6
-        restart: always
-        volumes:
-            - mongo-data:/data
-    wtb:
-        image: wtb:latest
-        restart: always
-        environment:
-            - TELEGRAM_API_TOKEN=${TELEGRAM_API_TOKEN}
-        depends_on:
-            - mongodb
-        links:
-            - mongodb
+  mongodb:
+   image: mongo:6.0.3
+   restart: unless-stopped
+   volumes:
+   - mongo-data:/data
+  wtb:
+   image: wtb:latest
+   restart: unless-stopped
+   environment:
+   - TELEGRAM_API_TOKEN=${TELEGRAM_API_TOKEN}
+   depends_on:
+   - mongodb
+   links:
+   - mongodb
 volumes:
-    mongo-data:
+  mongo-data:
