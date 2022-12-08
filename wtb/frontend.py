@@ -128,6 +128,7 @@ def stats(update, context):
             "Total users: {}\n"
             "Active users: {}\n"
             "New users within last 30 days: {}\n"
+            "\n"
             "Top 5 searched languages:\n"
             "{}\n"
             "\n"
