@@ -25,7 +25,7 @@ def get_users_collection():
 
 
 def count_language(lang):
-    return get_users_collection().count({
+    return get_users_collection().count_documents({
         "pause": False,
         "language": lang,
     })
@@ -109,17 +109,17 @@ def get_pair(skip_users, language):
 
 
 def get_user_count():
-    return get_users_collection().find({}).count()
+    return get_users_collection().count_dosuments()
 
 
 def get_active_user_count():
-    return get_users_collection().find({"pause": {"$ne": True}}).count()
+    return get_users_collection().count_documents({"pause": {"$ne": True}})
 
 
 def get_recent_user_count(days):
-    return get_users_collection().find(
-        {"created_at": {"$gte": datetime.datetime.now() - datetime.timedelta(days=days)}}
-    ).count()
+    return get_users_collection().count_documents(
+        {"created_at": {"$gte": datetime.datetime.now() - datetime.timedelta(days=days)}},
+    )
 
 
 def get_top_wanted_languages(limit):
