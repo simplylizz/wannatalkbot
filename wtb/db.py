@@ -109,7 +109,7 @@ def get_pair(skip_users, language):
 
 
 def get_user_count():
-    return get_users_collection().count_dosuments()
+    return get_users_collection().count_documents()
 
 
 def get_active_user_count():
