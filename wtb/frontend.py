@@ -12,11 +12,10 @@ from telegram import (
     ReplyKeyboardMarkup,
     ReplyKeyboardRemove,
 )
-from telegram.ext import (
-    MessageHandler,
-    Filters,
-    ConversationHandler,
-)
+from telegram.ext import filters
+from telegram.ext import ContextTypes
+from telegram.ext import MessageHandler
+from telegram.ext import ConversationHandler
 
 from . import logconfig
 from . import db
@@ -70,12 +69,12 @@ def get_actions_keyboard(wtb_user: typing.Optional[models.User]):
     )
 
 
-def get_wtb_user_from_update(update) -> models.User:
+def get_wtb_user_from_update(update: telegram.Update) -> models.User:
     return db.get_user_from_telegram_obj(update.message.from_user)
 
 
 @botutils.log_message
-def default_handler(update, context):
+async def default_handler(update: telegram.Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
     Find user in DB.
     If it's missing ask him to enter his language.
@@ -83,7 +82,7 @@ def default_handler(update, context):
     wtb_user = get_wtb_user_from_update(update)
 
     if wtb_user is None:
-        update.message.reply_markdown(
+        await update.message.reply_markdown(
             (
                 "Hello, this is WannaTalkBot!"
                 "\n\n"
@@ -103,27 +102,26 @@ def default_handler(update, context):
             reply_markup=get_actions_keyboard(wtb_user),
         )
         return
-    else:
-        lang = wtb_user.language
-        update.message.reply_markdown(
-            (
-                f"Your native language is currently set to {lang}."
-                f"\n\n"
-                # SEARCH MESSAGE
-                f"You could change it or just set which language you are interested in."
-            ),
-            reply_markup=get_actions_keyboard(wtb_user),
-        )
-        return
+
+    lang = wtb_user.language
+    await update.message.reply_markdown(
+        (
+            f"Your native language is currently set to {lang}."
+            f"\n\n"
+            # SEARCH MESSAGE
+            f"You could change it or just set which language you are interested in."
+        ),
+        reply_markup=get_actions_keyboard(wtb_user),
+    )
 
 
-def stats(update, context):
+async def stats(update: telegram.Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
     Print usage statistics.
     """
     wtb_user = get_wtb_user_from_update(update)
 
-    update.message.reply_markdown(
+    await update.message.reply_markdown(
         (
             "Total users: {}\n"
             "Active users: {}\n"
@@ -154,19 +152,19 @@ def get_lang_from_udpate(update):
 
 
 @botutils.log_message
-def set_native_language(update, context):
+async def set_native_language(update: telegram.Update, context: ContextTypes.DEFAULT_TYPE) -> int | str:
     if update.message.text and not update.message.text.startswith(TextCommands.SET_NATIVE_LANGUAGE):
         lang = get_lang_from_udpate(update)
 
         if lang:
             wtb_user = db.update_wtb_user(update.message.from_user, {"language": lang})
-            update.message.reply_markdown(
+            await update.message.reply_markdown(
                 f"Your native language is set to {lang}.",
                 reply_markup=get_actions_keyboard(wtb_user),
             )
             return ConversationHandler.END
         else:
-            update.message.reply_markdown(
+            await update.message.reply_markdown(
                 (
                     "Sorry, failed to recognize language. Maybe you'd misspelled it?"
                     "\n\n"
@@ -175,28 +173,28 @@ def set_native_language(update, context):
                 reply_markup=ReplyKeyboardRemove(),
             )
             return SET_NATIVE_LANGUAGE_STATE
-    else:
-        update.message.reply_markdown(
-            (
-                "Specify your native language. People who "
-                "want to practice it would be able to send you requests to talk."
-                "\n\n"
-                "Please enter language name in english: 2 or 3 letters or full name."
-                "\n\n"
-                "For example: en, eng or English, ru, rus or Russian, etc."
-            ),
-            reply_markup=ReplyKeyboardRemove(),
-        )
-        return SET_NATIVE_LANGUAGE_STATE
+
+    await update.message.reply_markdown(
+        (
+            "Specify your native language. People who "
+            "want to practice it would be able to send you requests to talk."
+            "\n\n"
+            "Please enter language name in english: 2 or 3 letters or full name."
+            "\n\n"
+            "For example: en, eng or English, ru, rus or Russian, etc."
+        ),
+        reply_markup=ReplyKeyboardRemove(),
+    )
+    return SET_NATIVE_LANGUAGE_STATE
 
 
 @botutils.log_message
-def search_language(update, context):
+async def search_language(update: telegram.Update, context: ContextTypes.DEFAULT_TYPE) -> int | str:
     """
     Search users with specified language and send them request to talk
     """
     if not update.message.text or update.message.text.startswith(TextCommands.SEARCH_LANGUAGE):
-        update.message.reply_markdown(
+        await update.message.reply_markdown(
             (
                 "Specify language which you want to practice (in English, 2 or 3 "
                 "letters or full name):"
@@ -204,50 +202,50 @@ def search_language(update, context):
             reply_markup=ReplyKeyboardRemove(),
         )
         return SEARCH_LANGUAGE_STATE
-    else:
-        lang = get_lang_from_udpate(update)
-        if lang:
-            wtb_user = db.update_wtb_user(
-                update.message.from_user,
-                {
-                    "search_language": lang,
-                    "pause": False,
-                }
-            )
-            counter = db.count_language(lang)
 
-            update.message.reply_markdown(
-                (
-                    "Right now we have {language_counter}"
-                    " active users who specified {language} as their native "
-                    "language."
-                    "\n\n"
-                    "You could search them through this bot and send request "
-                    "to talk. Your contacts would be exposed to them."
-                    "\n\n"
-                    "Also other people can send you requests to practice your"
-                    " native language."
-                ).format(
-                    language=lang,
-                    language_counter=counter,
-                ),
-                reply_markup=get_actions_keyboard(wtb_user),
-            )
-            return ConversationHandler.END
-        else:
-            update.message.reply_markdown(
-                (
-                    "Sorry, failed to recognize language. Maybe you'd misspelled it?"
-                    "\n\n"
-                    "Please, try to enter language which you wish to practice again."
-                ),
-                reply_markup=ReplyKeyboardRemove(),
-            )
-            return SEARCH_LANGUAGE_STATE
+    lang = get_lang_from_udpate(update)
+    if lang:
+        wtb_user = db.update_wtb_user(
+            update.message.from_user,
+            {
+                "search_language": lang,
+                "pause": False,
+            }
+        )
+        counter = db.count_language(lang)
+
+        await update.message.reply_markdown(
+            (
+                "Right now we have {language_counter}"
+                " active users who specified {language} as their native "
+                "language."
+                "\n\n"
+                "You could search them through this bot and send request "
+                "to talk. Your contacts would be exposed to them."
+                "\n\n"
+                "Also other people can send you requests to practice your"
+                " native language."
+            ).format(
+                language=lang,
+                language_counter=counter,
+            ),
+            reply_markup=get_actions_keyboard(wtb_user),
+        )
+        return ConversationHandler.END
+
+    await update.message.reply_markdown(
+        (
+            "Sorry, failed to recognize language. Maybe you'd misspelled it?"
+            "\n\n"
+            "Please, try to enter language which you wish to practice again."
+        ),
+        reply_markup=ReplyKeyboardRemove(),
+    )
+    return SEARCH_LANGUAGE_STATE
 
 
 @botutils.log_message
-def find_pair(update, context):
+async def find_pair(update: telegram.Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
     Find user to practice language with.
 
@@ -278,7 +276,7 @@ def find_pair(update, context):
         pair = db.get_pair(skip_users, wtb_user.search_language)
 
         if not pair:
-            update.message.reply_markdown(
+            await update.message.reply_markdown(
                 (
                     "Unfortunately we can't find anyone right now. Please, "
                     "try later."
@@ -288,21 +286,21 @@ def find_pair(update, context):
             break
 
         try:
-            context.bot.send_message(
+            await context.bot.send_message(
                 text=(
-                    "Hey! Someone needs your help. Just drop a message to "
-                    "[{name}](tg://user?id={user_id}) in {language} when it's "
-                    "convenient to you, but please, don't make him/her wait too "
-                    "long."
+                    r"Hey\! Someone needs your help\. Just drop a message to "
+                    r"[{name}](tg://user?id={user_id}) in {language} when it's "
+                    r"convenient to you, but please, don't make them wait too "
+                    r"long\."
                 ).format(
                     name=get_user_display_name(wtb_user),
                     user_id=wtb_user["user_id"],
                     language=wtb_user.search_language,
                 ),
-                parse_mode=telegram.ParseMode.MARKDOWN,
+                parse_mode=telegram.constants.ParseMode.MARKDOWN_V2,
                 chat_id=pair["user_id"],
             )
-        except telegram.error.Unauthorized:  # bot is blocked by user
+        except telegram.error.Forbidden:  # bot is blocked by user
             db.update_wtb_user(pair, {"pause": True})
             continue
 
@@ -315,7 +313,7 @@ def find_pair(update, context):
         })
         db.update_wtb_user(wtb_user, {"sent_requests": sent_requests})
 
-        update.message.reply_markdown(
+        await update.message.reply_markdown(
             (
                 "We have found someone and sent your contacts. Just wait "
                 "for \\*hello\\* from this user."
@@ -330,7 +328,7 @@ def find_pair(update, context):
         break
 
 
-def get_user_display_name(wtb_user):
+def get_user_display_name(wtb_user) -> str:
     if wtb_user.get("username"):
         name = wtb_user["username"]
     else:
@@ -341,107 +339,102 @@ def get_user_display_name(wtb_user):
 
 
 @botutils.log_message
-def fallback_command(update, context):
+async def fallback_command(update: telegram.Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     logger.error("Caught fallback on update: %s", update)
-    update.message.reply_markdown(
+    await update.message.reply_markdown(
         "Something went wrong, can't handle your request."
     )
 
 
-def log_error(update, context):
+async def log_error(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Log Errors caused by Updates"""
     logger.error('Update "%s" caused error "%s"', update, context.error, exc_info=True)
 
 
-def main():
+def main() -> None:
     logger.info("Starting WannaTalkBot...")
 
-    updater = botutils.get_updater()
+    app = botutils.get_application()
 
     handler = ConversationHandler(
         entry_points=[
             MessageHandler(
-                Filters.regex(rf"^{TextCommands.SET_NATIVE_LANGUAGE}.*"),
+                filters.Regex(rf"^{TextCommands.SET_NATIVE_LANGUAGE}.*"),
                 set_native_language,
             ),
         ],
         states={
             # state key doesn't matter, there is only one state
             SET_NATIVE_LANGUAGE_STATE: [
-                MessageHandler(Filters.text, set_native_language),
+                MessageHandler(filters.TEXT, set_native_language),
             ],
         },
 
         fallbacks=[
-            MessageHandler(Filters.all, fallback_command),
+            MessageHandler(filters.ALL, fallback_command),
         ],
     )
-    updater.dispatcher.add_handler(handler)
+    app.add_handler(handler)
 
     handler = ConversationHandler(
         entry_points=[
             MessageHandler(
-                Filters.regex(rf"^{TextCommands.SEARCH_LANGUAGE}.*"),
+                filters.Regex(rf"^{TextCommands.SEARCH_LANGUAGE}.*"),
                 search_language,
             ),
         ],
         states={
             # state key doesn't matter, there is only one state
             SEARCH_LANGUAGE_STATE: [
-                MessageHandler(Filters.text, search_language),
+                MessageHandler(filters.TEXT, search_language),
             ],
         },
 
         fallbacks=[
-            MessageHandler(Filters.all, fallback_command),
+            MessageHandler(filters.ALL, fallback_command),
         ],
     )
-    updater.dispatcher.add_handler(handler)
+    app.add_handler(handler)
 
     handler = ConversationHandler(
         entry_points=[
             MessageHandler(
-                Filters.regex(rf"^{TextCommands.FIND}.*"),
+                filters.Regex(rf"^{TextCommands.FIND}.*"),
                 find_pair,
             ),
         ],
         states={
             # state key doesn't matter, there is only one state
             FIND_STATE: [
-                MessageHandler(Filters.text, find_pair),
+                MessageHandler(filters.TEXT, find_pair),
             ],
         },
 
         fallbacks=[
-            MessageHandler(Filters.all, fallback_command),
+            MessageHandler(filters.ALL, fallback_command),
         ],
     )
-    updater.dispatcher.add_handler(handler)
+    app.add_handler(handler)
 
     handler = MessageHandler(
-        Filters.text(STATS),
+        filters.Text([STATS]),
         stats,
     )
-    updater.dispatcher.add_handler(handler)
+    app.add_handler(handler)
 
     handler = MessageHandler(
-        Filters.text(TextCommands.STATS),
+        filters.Text([TextCommands.STATS]),
         stats,
     )
-    updater.dispatcher.add_handler(handler)
+    app.add_handler(handler)
 
-    handler = MessageHandler(Filters.all, default_handler)
-    updater.dispatcher.add_handler(handler)
+    handler = MessageHandler(filters.ALL, default_handler)
+    app.add_handler(handler)
 
     # log all errors
-    updater.dispatcher.add_error_handler(log_error)
-
-    # Start the Bot
-    updater.start_polling()
-
-    logger.info("Started")
+    app.add_error_handler(log_error)
 
     # Run the bot until you press Ctrl-C or the process receives SIGINT,
     # SIGTERM or SIGABRT. This should be used most of the time, since
     # start_polling() is non-blocking and will stop the bot gracefully.
-    updater.idle()
+    app.run_polling()
