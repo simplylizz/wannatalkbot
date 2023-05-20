@@ -1,4 +1,4 @@
-FROM python:3.11.1-slim as img
+FROM python:3.11.3-slim as img
 
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_NO_CACHE_DIR=1 \
