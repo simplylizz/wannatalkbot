@@ -1,0 +1,21 @@
+name: CI [core-app]
+
+on:
+  push:
+    path:
+      - wtb/**/*.py
+
+jobs:
+  flake8:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.11.3
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Install flake8
+        run: pip install flake8
+      - name: flake8 check
+        run: cd wtb && flake8
