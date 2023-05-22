@@ -1,7 +1,6 @@
 import datetime
 
 import pymongo
-import bson
 
 from . import models
 
