@@ -1,16 +1,18 @@
 import datetime
 
 import pymongo
+import pymongo.database
+import pymongo.collection
 
 from . import models
 
 # TODO: add indices... someday.
 
 
-_MONGO_CLIENT = None
+_MONGO_CLIENT: pymongo.MongoClient | None = None
 
 
-def get_mongo_db():
+def get_mongo_db() -> pymongo.database.Database:
     global _MONGO_CLIENT
 
     if _MONGO_CLIENT is None:
@@ -19,11 +21,11 @@ def get_mongo_db():
     return _MONGO_CLIENT.wannatalk
 
 
-def get_users_collection():
+def get_users_collection() -> pymongo.collection.Collection:
     return get_mongo_db().users
 
 
-def count_language(lang):
+def count_language(lang: str) -> int:
     return get_users_collection().count_documents({
         "pause": False,
         "language": lang,
@@ -74,12 +76,12 @@ def update_wtb_user(user, extra):
     return models.User(**result)
 
 
-def get_messages_collection():
+def get_messages_collection() -> pymongo.collection.Collection:
     return get_mongo_db().messages
 
 
-def get_user_from_telegram_obj(user):
-    """get wanna talk bot user"""
+def get_user_from_telegram_obj(user) -> models.User | None:
+    """Get WannaTalkBot user"""
 
     db_user = get_users_collection().find_one({"user_id": user.id})
 
@@ -107,21 +109,21 @@ def get_pair(skip_users, language):
     return sample[0] if sample else None
 
 
-def get_user_count():
+def get_user_count() -> int:
     return get_users_collection().count_documents({})
 
 
-def get_active_user_count():
+def get_active_user_count() -> int:
     return get_users_collection().count_documents({"pause": {"$ne": True}})
 
 
-def get_recent_user_count(days):
+def get_recent_user_count(days) -> int:
     return get_users_collection().count_documents(
-        {"created_at": {"$gte": datetime.datetime.now() - datetime.timedelta(days=days)}},
+        {"created_at": {"$gte": datetime.datetime.utcnow() - datetime.timedelta(days=days)}},
     )
 
 
-def get_top_wanted_languages(limit):
+def get_top_wanted_languages(limit: int):
     return get_users_collection().aggregate([
         {"$match": {"search_language": {"$ne": None}}},
         {"$sortByCount": "$search_language"},
@@ -129,7 +131,7 @@ def get_top_wanted_languages(limit):
     ])
 
 
-def get_top_known_languages(limit):
+def get_top_known_languages(limit: int):
     return get_users_collection().aggregate([
         {"$match": {"language": {"$ne": None}}},
         {"$sortByCount": "$language"},
@@ -137,7 +139,7 @@ def get_top_known_languages(limit):
     ])
 
 
-def get_top_language_pairs(limit):
+def get_top_language_pairs(limit: int):
     return get_users_collection().aggregate([
         {"$match": {"$and": [
             {"language": {"$ne": None}},
