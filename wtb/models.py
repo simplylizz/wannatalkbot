@@ -1,6 +1,5 @@
 import datetime
 import dataclasses
-import typing
 
 
 @dataclasses.dataclass
@@ -14,17 +13,17 @@ class User:
     """
 
     _id: str
-    user_id: str
+    user_id: int
     last_updated: datetime.datetime
     created_at: datetime.datetime
     language: str
     search_language: str = dataclasses.field(default='')
-    sent_requests: typing.List = dataclasses.field(default_factory=lambda: [])
+    sent_requests: list[dict] = dataclasses.field(default_factory=lambda: [])
 
-    first_name: typing.Optional[str] = None
-    last_name: typing.Optional[str] = None
-    username: typing.Optional[str] = None
-    language_code: typing.Optional[str] = None
+    first_name: str | None = None
+    last_name: str | None = None
+    username: str | None = None
+    language_code: str | None = None
 
     pause: bool = dataclasses.field(default=False)
 
