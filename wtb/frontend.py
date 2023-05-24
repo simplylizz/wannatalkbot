@@ -69,8 +69,8 @@ def get_actions_keyboard(wtb_user: typing.Optional[models.User]):
     )
 
 
-def get_wtb_user_from_update(update: telegram.Update) -> models.User:
-    return db.get_user_from_telegram_obj(update.message.from_user)
+def get_wtb_user_from_update(update: telegram.Update) -> models.User | None:
+    return db.get_user(update.message.from_user.id)
 
 
 @botutils.log_message
@@ -286,6 +286,7 @@ async def find_pair(update: telegram.Update, context: ContextTypes.DEFAULT_TYPE)
             break
 
         try:
+            # NOTE: tagging a user could not work depending on user's privacy settings
             await context.bot.send_message(
                 text=(
                     r"Hey\! Someone needs your help\. Just drop a message to "
@@ -294,7 +295,7 @@ async def find_pair(update: telegram.Update, context: ContextTypes.DEFAULT_TYPE)
                     r"long\."
                 ).format(
                     name=get_user_display_name(wtb_user),
-                    user_id=wtb_user["user_id"],
+                    user_id=wtb_user.user_id,
                     language=wtb_user.search_language,
                 ),
                 parse_mode=telegram.constants.ParseMode.MARKDOWN_V2,
@@ -328,9 +329,9 @@ async def find_pair(update: telegram.Update, context: ContextTypes.DEFAULT_TYPE)
         break
 
 
-def get_user_display_name(wtb_user) -> str:
+def get_user_display_name(wtb_user: models.User) -> str:
     if wtb_user.get("username"):
-        name = wtb_user["username"]
+        name = wtb_user.username
     else:
         name = " ".join(
             wtb_user[f] for f in ("first_name", "last_name") if wtb_user.get(f))

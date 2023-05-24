@@ -80,18 +80,15 @@ def get_messages_collection() -> pymongo.collection.Collection:
     return get_mongo_db().messages
 
 
-def get_user_from_telegram_obj(user) -> models.User | None:
-    """Get WannaTalkBot user"""
-
-    db_user = get_users_collection().find_one({"user_id": user.id})
-
+def get_user(user_id: int) -> models.User | None:
+    db_user = get_users_collection().find_one({"user_id": user_id})
     if db_user:
         return models.User(**db_user)
 
     return None
 
 
-def get_pair(skip_users, language):
+def get_pair(skip_users: list[int], language: str) -> dict | None:
     pipeline = [
         {
             "$match": {
